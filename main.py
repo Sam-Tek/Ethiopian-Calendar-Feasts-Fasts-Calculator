@@ -1,43 +1,26 @@
 #!/usr/bin/env python3
 """
-Calcul des dates de fêtes et jeûnes selon le calendrier éthiopien pur.
-Le calendrier éthiopien comporte 12 mois de 30 jours et un 13ᵉ mois, Pagumén,
-composé de 5 jours (6 les années bissextiles).
+Calculation of holiday and fast dates according to the Ethiopian calendar.
+The Ethiopian calendar has 12 months of 30 days each and a 13th month, Pagumen,
+composed of 5 days (6 in leap years).
 
-Ce script ne dépend pas du calendrier grégorien : toutes les opérations sont faites
-sur le calendrier éthiopien uniquement.
+This script does not depend on the Gregorian calendar: all operations are performed
+on the Ethiopian calendar only.
 """
 
 from dataclasses import dataclass
 import math
 
-# --- Définitions des mois éthiopiens ---
+# --- Definitions of Ethiopian months ---
 MONTHS = [
     "Mäskäräm", "Teqemt", "Hedar", "Tahesas", "Ter", "Yäkatit",
     "Mägabit", "Miyazya", "Guenbot", "Säné", "Hamlé", "Nähasé", "Pagumén"
 ]
 
-EVANGELISTS = [
-    "John",
-    "Matthew",  
-    "Mark",
-    "Luke"
-]
+EVANGELISTS = ["John", "Matthew", "Mark", "Luke"]
+DAYSFORJOHN = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+ADDON = [6, 5, 4, 3, 2, 8, 7]  # Correspond à l'ajout pour Mebega Hemere selon le jour
 
-DAYSFORJOHN = [
-    "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"
-]
-
-#index is day of john and value is addon of mebega hemere
-ADDON = [
-    6, #Monday
-    5, #Tuesday
-    4, #Wednesday
-    3, #Thursday
-    2, #Friday
-    8, #Saturday
-    7  #Sunday
-]
 @dataclass
 class EthioDate:
     year: int
@@ -49,7 +32,7 @@ class EthioDate:
 
 
 def is_ethio_leap(year: int) -> bool:
-    """Détermine si une année éthiopienne est bissextile (tous les 4 ans)."""
+    """Determines if an Ethiopian year is a leap year (every 4 years)."""
     return (year % 4) == 3
 
 
@@ -59,7 +42,7 @@ def month_length(month: int, year: int) -> int:
     elif month == 13:
         return 6 if is_ethio_leap(year) else 5
     else:
-        raise ValueError("Mois invalide (1-13 attendu)")
+        raise ValueError("Invalid month (1-13 expected)")
 
 
 def add_days(date: EthioDate, days: int) -> EthioDate:
@@ -89,14 +72,14 @@ def add_months(date: EthioDate, months: int) -> EthioDate:
 
 
 def compute_fasts_and_feasts(year: int):
-    """Calcule toutes les fêtes et jeûnes à partir d'une année éthiopienne donnée."""
+    """Calculates all feasts and fasts from a given Ethiopian year."""
     yw = 5500 + year
 
-    # Obtenir les deux derniers chiffres de l'année
+    # Get the last two digits of the year
     last_two_digits = year % 100
 
-    # Utiliser les deux derniers chiffres pour les calculs
-    E = math.trunc((last_two_digits) % 4)
+    #Use the last two digits for calculations
+    E = math.trunc(last_two_digits % 4)
     Mr = math.trunc(yw / 4)
     Jd = math.trunc((Mr + yw) % 7)
     c = math.trunc(yw % 19)
@@ -105,7 +88,7 @@ def compute_fasts_and_feasts(year: int):
     a = math.trunc((n * 11) % 30)
     m = 30 - a
 
-    # Détermination de la fête des trompettes
+    # Determination of the Feast of Trumpets
     if m < 14:
         t_month, t_day = 2, m  # Teqemt
     else:
@@ -123,13 +106,13 @@ def compute_fasts_and_feasts(year: int):
         
         
 
-    # Mebega Hemere = fête des trompettes + addon
+    # Mebega Hemere = feast of trumpets + addon
     h_date = add_days(t_date, ADDON[t_day_index])
 
-    # Nineveh = +4 mois
+    # Nineveh = +4 months
     nineveh = add_months(h_date, 4)
 
-    # Liste des fêtes et jeûnes selon les offsets
+    # List of festivals and fasts according to offsets
     offsets = {
         'Great Lent': 14,
         'Mt Olivier': 41,
@@ -155,6 +138,20 @@ def compute_fasts_and_feasts(year: int):
         'm': m,
         'Beale Meteque (Feast of Trumpet)': str(t_date)+' '+str(DAYSFORJOHN[t_day_index]),
         'Mebega Hemere (Ark’s dwelling place)': str(h_date)+' ADDON: '+str(ADDON[t_day_index]),
+        'Nineveh': nineveh
+    }
+    results = {
+        'Ethiopian Year': year,
+        'YW': yw,
+        'Evangelist (E)': f"{E} {EVANGELISTS[E]}",
+        'Metene Rabeite (Mr)': Mr,
+        'Day of John (Jd)': f"{Jd} {DAYSFORJOHN[Jd]}",
+        'Cycle (c)': c,
+        'Golden number (n)': n,
+        'Epact (a)': a,
+        'm': m,
+        'Beale Meteque (Feast of Trumpet)': f"{t_date} {DAYSFORJOHN[t_day_index]}",
+        'Mebega Hemere (Ark’s dwelling place)': f"{h_date} ADDON: {ADDON[t_day_index]}",
         'Nineveh': nineveh
     }
 
