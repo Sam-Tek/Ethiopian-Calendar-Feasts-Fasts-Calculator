@@ -9,6 +9,7 @@ sur le calendrier éthiopien uniquement.
 """
 
 from dataclasses import dataclass
+import math
 
 # --- Définitions des mois éthiopiens ---
 MONTHS = [
@@ -16,6 +17,27 @@ MONTHS = [
     "Mägabit", "Miyazya", "Guenbot", "Säné", "Hamlé", "Nähasé", "Pagumén"
 ]
 
+EVANGELISTS = [
+    "John",
+    "Matthew",  
+    "Mark",
+    "Luke"
+]
+
+DAYSFORJOHN = [
+    "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"
+]
+
+#index is day of john and value is addon of mebega hemere
+ADDON = [
+    6, #Monday
+    5, #Tuesday
+    4, #Wednesday
+    3, #Thursday
+    2, #Friday
+    8, #Saturday
+    7  #Sunday
+]
 @dataclass
 class EthioDate:
     year: int
@@ -55,19 +77,6 @@ def add_days(date: EthioDate, days: int) -> EthioDate:
                 if month > 13:
                     month = 1
                     year += 1
-    else:
-        days = -days
-        while days > 0:
-            if day > days:
-                day -= days
-                days = 0
-            else:
-                days -= day
-                month -= 1
-                if month < 1:
-                    month = 13
-                    year -= 1
-                day = month_length(month, year)
     return EthioDate(year, month, day)
 
 
@@ -82,24 +91,40 @@ def add_months(date: EthioDate, months: int) -> EthioDate:
 def compute_fasts_and_feasts(year: int):
     """Calcule toutes les fêtes et jeûnes à partir d'une année éthiopienne donnée."""
     yw = 5500 + year
-    E = (yw % 19) % 4
-    Mr = yw // 4
-    Jd = (Mr + yw) % 7
-    c = yw % 19
+
+    # Obtenir les deux derniers chiffres de l'année
+    last_two_digits = year % 100
+
+    # Utiliser les deux derniers chiffres pour les calculs
+    E = math.trunc((last_two_digits) % 4)
+    Mr = math.trunc(yw / 4)
+    Jd = math.trunc((Mr + yw) % 7)
+    c = math.trunc(yw % 19)
+    c = 19 if c == 0 else c
     n = c - 1
-    a = (n * 11) % 30
+    a = math.trunc((n * 11) % 30)
     m = 30 - a
 
     # Détermination de la fête des trompettes
     if m < 14:
         t_month, t_day = 2, m  # Teqemt
     else:
-        t_month, t_day = 1, m - 13  # Mäskäräm
+        t_month, t_day = 1, m  # Mäskäräm
 
     t_date = EthioDate(year, t_month, t_day)
 
-    # Mebega Hemere = fête des trompettes + 8 jours
-    h_date = add_days(t_date, 8)
+    #get day of week from t_date
+    first_day_index = Jd
+    if (t_month == 2):
+        first_day_index = (first_day_index + 2) % 7
+    for i in range(t_day):
+        t_day_index = (first_day_index + i) % 7
+
+        
+        
+
+    # Mebega Hemere = fête des trompettes + addon
+    h_date = add_days(t_date, ADDON[t_day_index])
 
     # Nineveh = +4 mois
     nineveh = add_months(h_date, 4)
@@ -119,17 +144,17 @@ def compute_fasts_and_feasts(year: int):
     }
 
     results = {
-        'Année éthiopienne': year,
+        'Ethiopian Year': year,
         'YW': yw,
-        'Evangelist (E)': E,
+        'Evangelist (E)': str(E)+' '+str(EVANGELISTS[E]),
         'Metene Rabeite (Mr)': Mr,
-        'Day of John (Jd)': Jd,
+        'Day of John (Jd)': str(Jd)+' '+str(DAYSFORJOHN[Jd]),
         'Cycle (c)': c,
         'Golden number (n)': n,
         'Epact (a)': a,
         'm': m,
-        'Beale Meteque (Feast of Trumpet)': t_date,
-        'Mebega Hemere (Ark’s dwelling place)': h_date,
+        'Beale Meteque (Feast of Trumpet)': str(t_date)+' '+str(DAYSFORJOHN[t_day_index]),
+        'Mebega Hemere (Ark’s dwelling place)': str(h_date)+' ADDON: '+str(ADDON[t_day_index]),
         'Nineveh': nineveh
     }
 
@@ -141,7 +166,10 @@ def compute_fasts_and_feasts(year: int):
 
 if __name__ == "__main__":
     import json
-    year = int(input("Entrez l'année éthiopienne : "))
-    data = compute_fasts_and_feasts(year)
-    printable = {k: str(v) for k, v in data.items()}
-    print(json.dumps(printable, ensure_ascii=False, indent=2))
+    yearStart = int(input("Enter the starting Ethiopian year: "))
+    yearEnd = int(input("Enter the ending Ethiopian year:  "))
+    for year in range(yearStart, yearEnd + 1):
+        data = compute_fasts_and_feasts(year)
+        printable = {k: str(v) for k, v in data.items()}
+        print(f"\n--- Year {year} ---")
+        print(json.dumps(printable, ensure_ascii=False, indent=2))
